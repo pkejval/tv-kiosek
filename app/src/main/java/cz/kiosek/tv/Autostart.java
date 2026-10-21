@@ -13,7 +13,8 @@ import android.provider.Settings;
 /** What Android requires before a boot receiver may bring the kiosk to the foreground. */
 public final class Autostart {
     public static final String ADB_GRANT_OVERLAY = "adb shell appops set cz.kiosek.tv SYSTEM_ALERT_WINDOW allow";
-    public static final String ADB_SET_HOME = "adb shell cmd package set-home-activity cz.kiosek.tv/.MainActivity";
+    // Android 10+ resets a plain preferred Home activity to the role holder at boot.
+    public static final String ADB_SET_HOME = "adb shell cmd role add-role-holder android.app.role.HOME cz.kiosek.tv";
 
     private Autostart() { }
 

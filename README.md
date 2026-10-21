@@ -45,8 +45,13 @@ Android 10 silently blocks activity starts from a boot receiver. The app comes t
 1. **Výchozí launcher**: the app is the Home app, so Android itself opens it at boot. Most reliable. Many Android TV builds have no screen for choosing the launcher; set it over adb:
 
    ```
-   adb shell cmd package set-home-activity cz.kiosek.tv/.MainActivity
+   adb shell cmd role add-role-holder android.app.role.HOME cz.kiosek.tv
+   adb shell dumpsys role | grep -A3 android.app.role.HOME
    ```
+
+   Do not rely on `cmd package set-home-activity`: on Android 10+ it sets only a preferred activity, which the role manager resets to the HOME role holder at the next boot.
+
+   Other autostarting kiosk apps (e.g. Fully Kiosk with *Launch on boot* or *Bring to foreground*) compete for the foreground; disable them: `adb shell pm disable-user --user 0 de.ozerov.fully`.
 
    If the stock launcher still opens after a reboot, disable it (stock Android TV: `com.google.android.tvlauncher`; Google TV: `com.google.android.apps.tv.launcherx`):
 
@@ -62,7 +67,7 @@ Android 10 silently blocks activity starts from a boot receiver. The app comes t
    adb shell appops set cz.kiosek.tv SYSTEM_ALERT_WINDOW allow
    ```
 
-Launch the app once after installation: Android does not deliver the boot broadcast to an app that has never been started. Diagnose a failed autostart with `adb logcat -s TvKiosk`.
+Launch the app once after installation: Android does not deliver the boot broadcast to an app that has never been started. Diagnose a failed autostart in the web administration (section *Autostart*: last boot broadcast, whether a background start was allowed, and what last started the kiosk; the same data is in `GET /api/settings`) or with `adb logcat -s TvKiosk`.
 
 ## Web administration
 
