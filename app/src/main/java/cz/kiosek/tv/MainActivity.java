@@ -49,6 +49,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        recordStart(getIntent());
         WebAdmin.start(this);
         Preferences.get(this).registerOnSharedPreferenceChangeListener(settingsListener);
         if (!Preferences.get(this).contains(Preferences.URL)) {
@@ -56,6 +57,19 @@ public final class MainActivity extends Activity {
             return;
         }
         showKiosk();
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        recordStart(intent);
+    }
+
+    /** Shows in the web administration which path actually brought the kiosk up. */
+    private void recordStart(Intent intent) {
+        String source = intent.getAction() != null ? intent.getAction() : "BootReceiver";
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) source = "HOME (výchozí launcher)";
+        else if (intent.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER) || intent.hasCategory(Intent.CATEGORY_LAUNCHER)) source = "ikona aplikace";
+        Preferences.recordEvent(this, Preferences.LAST_START, source);
     }
 
     private void showKiosk() {

@@ -14,7 +14,10 @@ public final class BootReceiver extends BroadcastReceiver {
             AutostartFallback.cancel(context);
             return;
         }
-        if (!Autostart.canStartFromBackground(context)) {
+        boolean allowed = Autostart.canStartFromBackground(context);
+        Preferences.recordEvent(context, Preferences.LAST_BOOT, intent.getAction()
+                + (allowed ? "" : " – start z pozadí je zablokovaný"));
+        if (!allowed) {
             // Android 10+ silently drops the activity start below. Only the
             // Home role or the overlay permission lifts the restriction.
             Log.w(TAG, "Background activity start is blocked: grant 'display over other apps' or set as Home app");
@@ -28,6 +31,7 @@ public final class BootReceiver extends BroadcastReceiver {
         } catch (RuntimeException e) {
             // Some TV firmwares reject the first background launch during boot.
             Log.w(TAG, "Launch after boot failed", e);
+            Preferences.recordEvent(context, Preferences.LAST_BOOT, intent.getAction() + " – chyba: " + e);
         }
         // A PendingIntent sent by AlarmManager is a separate, system-delivered
         // attempt after the TV has finished initializing its launcher process.

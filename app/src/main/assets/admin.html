@@ -68,6 +68,16 @@
     </section>
 
     <section>
+      <h2>Autostart</h2>
+      <dl class="meta">
+        <dt>Výchozí launcher</dt><dd id="homeApp">–</dd>
+        <dt>Start z pozadí</dt><dd id="autostartReady">–</dd>
+        <dt>Poslední boot</dt><dd id="lastBoot">–</dd>
+        <dt>Poslední spuštění</dt><dd id="lastStart">–</dd>
+      </dl>
+    </section>
+
+    <section>
       <h2>Aktualizace aplikace</h2>
       <dl class="meta">
         <dt>Verze</dt><dd id="version">–</dd>
@@ -112,6 +122,10 @@
       $('engine').value = data.engine;
       $('startOnBoot').checked = data.startOnBoot;
       $('autostartWarn').hidden = !data.startOnBoot || data.autostartReady;
+      $('homeApp').textContent = data.homeApp ? 'ano' : 'ne';
+      $('autostartReady').textContent = data.autostartReady ? 'povolen' : 'zablokován';
+      $('lastBoot').textContent = data.lastBoot;
+      $('lastStart').textContent = data.lastStart;
     }
     $('version').textContent = data.version;
     $('abi').textContent = data.abi;

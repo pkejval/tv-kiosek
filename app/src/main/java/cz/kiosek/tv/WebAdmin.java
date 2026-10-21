@@ -195,6 +195,9 @@ public final class WebAdmin {
         result.put("engine", Preferences.get(app).getString(Preferences.ENGINE, Preferences.GECKO));
         result.put("startOnBoot", Preferences.get(app).getBoolean(Preferences.START_ON_BOOT, true));
         result.put("autostartReady", Autostart.canStartFromBackground(app));
+        result.put("homeApp", Autostart.isHomeApp(app));
+        result.put("lastBoot", Preferences.get(app).getString(Preferences.LAST_BOOT, "zatím nezaznamenán"));
+        result.put("lastStart", Preferences.get(app).getString(Preferences.LAST_START, "zatím nezaznamenáno"));
         return result;
     }
 

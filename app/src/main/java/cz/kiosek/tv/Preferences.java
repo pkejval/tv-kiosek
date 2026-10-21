@@ -4,13 +4,20 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.TextUtils;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public final class Preferences {
     private static final String FILE = "kiosk_settings";
     public static final String URL = "url";
     public static final String ENGINE = "engine";
     public static final String START_ON_BOOT = "start_on_boot";
+    public static final String LAST_BOOT = "last_boot";
+    public static final String LAST_START = "last_start";
     public static final String DEFAULT_URL = "https://example.com";
     public static final String GECKO = "gecko";
     public static final String SYSTEM_WEBVIEW = "webview";
@@ -37,6 +44,13 @@ public final class Preferences {
     }
     public static String url(Context context) {
         return get(context).getString(URL, DEFAULT_URL);
+    }
+
+    /** Remembers an autostart event, readable through the web administration. */
+    public static void recordEvent(Context context, String key, String message) {
+        String time = new SimpleDateFormat("d.M. HH:mm:ss", Locale.ROOT).format(new Date());
+        long sinceBoot = SystemClock.elapsedRealtime() / 1000;
+        get(context).edit().putString(key, time + " (" + sinceBoot + " s od zapnutí) " + message).apply();
     }
 
     /** @return the URL with a scheme, or null when it has no host. */
