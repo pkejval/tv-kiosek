@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Kiosek</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --text: #1a1e26; --muted: #5d6673; --line: #dde2e8;
+    --accent: #0a84c6; --good: #2e7d32; --warn: #b26a00; --bad: #c62828;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0e1116; --card: #1a1e26; --text: #f2f4f7; --muted: #9aa4b2; --line: #2a303b;
+            --accent: #40c4ff; --good: #66bb6a; --warn: #ffb74d; --bad: #ef5350; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  h2 { margin: 0 0 16px; font-size: 18px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+            padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-weight: 600; margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  input[type=text], input[type=url], select {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .check { display: flex; gap: 10px; align-items: center; font-weight: 400; margin-top: 16px; }
+  .check input { width: 20px; height: 20px; }
+  button { margin-top: 16px; padding: 10px 20px; font: inherit; font-weight: 600; border: 0;
+           border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  .row > :first-child { flex: 1; }
+  .meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0 0 8px; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; font-weight: 600; }
+  .msg { margin: 12px 0 0; min-height: 1.5em; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  .hint { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>TV Kiosek</h1>
+  <p class="sub">Webová správa kiosku</p>
+
+  <div id="admin">
+    <section>
+      <h2>Kiosk</h2>
+      <form id="settingsForm">
+        <label for="url">Webová adresa</label>
+        <input id="url" type="text" inputmode="url" required>
+        <label for="engine">Prohlížeč</label>
+        <select id="engine">
+          <option value="gecko">GeckoView (doporučeno)</option>
+          <option value="webview">Systémový WebView</option>
+        </select>
+        <label class="check"><input id="startOnBoot" type="checkbox"> Spustit po zapnutí TV</label>
+        <p class="msg warn" id="autostartWarn" hidden>Autostart teď nebude fungovat: na TV povolte „Zobrazení přes jiné aplikace“, nebo kiosk nastavte jako výchozí launcher.</p>
+        <button>Uložit a použít</button>
+        <p class="msg" id="settingsMsg"></p>
+      </form>
+    </section>
+
+    <section>
+      <h2>Aktualizace aplikace</h2>
+      <dl class="meta">
+        <dt>Verze</dt><dd id="version">–</dd>
+        <dt>Architektura</dt><dd id="abi">–</dd>
+        <dt>Stav</dt><dd id="installStatus">–</dd>
+      </dl>
+      <p class="msg warn" id="installWarn" hidden>Na TV povolte pro TV Kiosek instalaci neznámých aplikací (nastavení kiosku → Instalace aktualizací).</p>
+
+      <button id="github" type="button">Aktualizovat z GitHubu</button>
+      <p class="hint">Stáhne nejnovější release z github.com/pkejval/tv-kiosek, pokud je novější než nainstalovaná verze.</p>
+
+      <label for="apk">Nebo nahrát APK z počítače</label>
+      <div class="row">
+        <input id="apk" type="file" accept=".apk,application/vnd.android.package-archive">
+        <button id="upload" type="button">Nahrát</button>
+      </div>
+
+      <label for="apkUrl">Nebo stáhnout APK z adresy</label>
+      <div class="row">
+        <input id="apkUrl" type="url" placeholder="https://…/app-arm64-v8a-release.apk">
+        <button id="download" type="button">Stáhnout</button>
+      </div>
+      <p class="hint">APK musí pocházet z GitHub Actions tohoto projektu (stejný podpisový klíč) a mít vyšší versionCode. Instalaci je potřeba potvrdit ovladačem na TV.</p>
+      <p class="msg" id="updateMsg"></p>
+    </section>
+  </div>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  async function api(path, options = {}) {
+    const response = await fetch(path, { ...options, headers: { 'X-Kiosek': '1', ...(options.headers || {}) } });
+    const data = await response.json().catch(() => ({ error: 'Neplatná odpověď TV' }));
+    if (!response.ok || data.error) throw new Error(data.error || ('HTTP ' + response.status));
+    return data;
+  }
+
+  function show(el, text, cls) { el.textContent = text; el.className = 'msg ' + (cls || ''); }
+
+  function render(data) {
+    if ('url' in data) {
+      $('url').value = data.url;
+      $('engine').value = data.engine;
+      $('startOnBoot').checked = data.startOnBoot;
+      $('autostartWarn').hidden = !data.startOnBoot || data.autostartReady;
+    }
+    $('version').textContent = data.version;
+    $('abi').textContent = data.abi;
+    $('installStatus').textContent = data.installStatus;
+    $('installWarn').hidden = data.canInstall;
+  }
+
+  $('settingsForm').onsubmit = async event => {
+    event.preventDefault();
+    try {
+      render(await api('/api/settings', { method: 'POST', body: JSON.stringify({
+        url: $('url').value, engine: $('engine').value, startOnBoot: $('startOnBoot').checked }) }));
+      show($('settingsMsg'), 'Uloženo, kiosk načítá novou stránku.', 'good');
+    } catch (e) { show($('settingsMsg'), e.message, 'bad'); }
+  };
+
+  let polling;
+  function pollStatus() {
+    clearInterval(polling);
+    let rounds = 0;
+    polling = setInterval(async () => {
+      try { render(await api('/api/status')); }
+      catch (e) { $('installStatus').textContent = 'TV se restartuje… obnovte stránku za chvíli'; }
+      if (++rounds > 90) clearInterval(polling);
+    }, 2000);
+  }
+
+  async function startUpdate(request) {
+    $('upload').disabled = $('download').disabled = $('github').disabled = true;
+    show($('updateMsg'), 'Odesílám…');
+    try {
+      render(await request());
+      show($('updateMsg'), 'Odesláno. Pokud je k dispozici nová verze, potvrďte instalaci ovladačem na TV.', 'good');
+      pollStatus();
+    } catch (e) { show($('updateMsg'), e.message, 'bad'); }
+    $('upload').disabled = $('download').disabled = $('github').disabled = false;
+  }
+
+  $('github').onclick = () => startUpdate(() => api('/api/install-github', { method: 'POST' }));
+
+  $('upload').onclick = () => {
+    const file = $('apk').files[0];
+    if (!file) return show($('updateMsg'), 'Vyberte soubor APK.', 'bad');
+    startUpdate(() => api('/api/install', { method: 'POST', body: file,
+      headers: { 'Content-Type': 'application/vnd.android.package-archive' } }));
+  };
+
+  $('download').onclick = () => {
+    const url = $('apkUrl').value.trim();
+    if (!url) return show($('updateMsg'), 'Zadejte adresu APK.', 'bad');
+    startUpdate(() => api('/api/install-url', { method: 'POST', body: JSON.stringify({ url }) }));
+  };
+
+  api('/api/settings').then(render).catch(e => show($('settingsMsg'), e.message, 'bad'));
+</script>
+</body>
+</html>
