@@ -23,14 +23,16 @@ import org.mozilla.geckoview.GeckoView;
 
 public final class MainActivity extends Activity {
     private static final int REQUEST_SETTINGS = 100;
+    private static final long LONG_PRESS_MS = 700;
     private static GeckoRuntime geckoRuntime;
     private FrameLayout container;
     private GeckoSession geckoSession;
     private WebView systemWebView;
     private final Handler handler = new Handler();
-    private boolean appDrawerOpened;
-    private final Runnable openAppDrawer = () -> {
-        appDrawerOpened = true;
+    private boolean geckoCanGoBack;
+    private boolean menuOpened;
+    private final Runnable openMenu = () -> {
+        menuOpened = true;
         startActivity(new Intent(this, AppDrawerActivity.class));
     };
     // Settings saved from the web administration apply immediately.
@@ -80,6 +82,7 @@ public final class MainActivity extends Activity {
             geckoSession.close();
             geckoSession = null;
         }
+        geckoCanGoBack = false;
         if (systemWebView != null) {
             systemWebView.stopLoading();
             systemWebView.destroy();
@@ -100,6 +103,11 @@ public final class MainActivity extends Activity {
             geckoRuntime = GeckoRuntime.create(getApplicationContext(), runtimeSettings);
         }
         geckoSession = new GeckoSession();
+        geckoSession.setNavigationDelegate(new GeckoSession.NavigationDelegate() {
+            @Override public void onCanGoBack(GeckoSession session, boolean canGoBack) {
+                geckoCanGoBack = canGoBack;
+            }
+        });
         geckoSession.open(geckoRuntime);
         GeckoView view = new GeckoView(this);
         view.setOnGenericMotionListener(mouseListener);
@@ -122,24 +130,32 @@ public final class MainActivity extends Activity {
         view.loadUrl(Preferences.url(this));
     }
 
-    @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_MENU && event.getRepeatCount() == 0) {
-            appDrawerOpened = false;
-            handler.postDelayed(openAppDrawer, 700);
-            return true;
+    /**
+     * Handled before the browser view sees the key. Holding BACK or MENU opens
+     * the menu; most Android TV remotes have no MENU key, but all have BACK.
+     */
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        int key = event.getKeyCode();
+        if (key != KeyEvent.KEYCODE_BACK && key != KeyEvent.KEYCODE_MENU) return super.dispatchKeyEvent(event);
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            menuOpened = false;
+            handler.postDelayed(openMenu, LONG_PRESS_MS);
+        } else if (event.getAction() == KeyEvent.ACTION_UP) {
+            handler.removeCallbacks(openMenu);
+            if (!menuOpened && !event.isCanceled()) {
+                if (key == KeyEvent.KEYCODE_MENU) openSettings(); else goBack();
+            }
         }
-        return super.onKeyDown(keyCode, event);
+        return true;
     }
 
-    @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_MENU) {
-            handler.removeCallbacks(openAppDrawer);
-            if (!appDrawerOpened) {
-                openSettings();
-            }
-            return true;
+    /** Page history only: BACK never leaves the kiosk. */
+    private void goBack() {
+        if (geckoSession != null && geckoCanGoBack) {
+            geckoSession.goBack();
+        } else if (systemWebView != null && systemWebView.canGoBack()) {
+            systemWebView.goBack();
         }
-        return super.onKeyUp(keyCode, event);
     }
 
     @Override public boolean onGenericMotionEvent(MotionEvent event) {
@@ -157,7 +173,7 @@ public final class MainActivity extends Activity {
     }
 
     private void openSettings() {
-        handler.removeCallbacks(openAppDrawer);
+        handler.removeCallbacks(openMenu);
         startActivityForResult(new Intent(this, SettingsActivity.class), REQUEST_SETTINGS);
     }
 
@@ -172,7 +188,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
-        handler.removeCallbacks(openAppDrawer);
+        handler.removeCallbacks(openMenu);
         Preferences.get(this).unregisterOnSharedPreferenceChangeListener(settingsListener);
         if (geckoSession != null) geckoSession.close();
         if (systemWebView != null) systemWebView.destroy();

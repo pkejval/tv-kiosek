@@ -24,7 +24,19 @@ adb install tv-kiosek-<versionCode>-arm64-v8a.apk
 adb shell am start -n cz.kiosek.tv/.MainActivity
 ```
 
-At the first launch, the app shows the configuration screen. Later, press **MENU** on the TV remote to open it again; hold **MENU** to open the list of installed apps.
+At the first launch, the app shows the configuration screen.
+
+## Leaving the kiosk
+
+The kiosk is not a lock-down: it only replaces the home screen.
+
+| Remote | Action |
+| --- | --- |
+| **BACK** | Previous page; never leaves the kiosk |
+| Hold **BACK** or **MENU** | Menu: back to the kiosk, kiosk settings, Android TV settings, the stock home screen and all installed apps |
+| **MENU** | Kiosk settings |
+| **HOME** | Back to the kiosk (when it is the default Home app) |
+| Right mouse button | Kiosk settings |
 
 ## Autostart on Android 10+
 
@@ -42,7 +54,7 @@ Android 10 silently blocks activity starts from a boot receiver. The app comes t
    adb shell pm disable-user --user 0 com.google.android.tvlauncher
    ```
 
-   Undo with `adb shell pm enable com.google.android.tvlauncher`. Keep adb access to the TV before doing this: with the stock launcher disabled, the kiosk is the only home screen.
+   Undo with `adb shell pm enable com.google.android.tvlauncher`. Do this only when necessary: a disabled stock launcher also disappears from the kiosk menu, so the kiosk becomes the only home screen.
 
 2. **Zobrazení přes jiné aplikace** (`SYSTEM_ALERT_WINDOW`) lifts the background-start restriction. TVs often hide this screen; grant it over adb:
 

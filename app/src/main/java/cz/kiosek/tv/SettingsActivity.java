@@ -4,9 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,17 +22,18 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import static cz.kiosek.tv.TvUi.ACCENT;
+import static cz.kiosek.tv.TvUi.BACKGROUND;
+import static cz.kiosek.tv.TvUi.GOOD;
+import static cz.kiosek.tv.TvUi.MUTED;
+import static cz.kiosek.tv.TvUi.TEXT;
+import static cz.kiosek.tv.TvUi.TILE;
+import static cz.kiosek.tv.TvUi.TILE_FOCUSED;
+import static cz.kiosek.tv.TvUi.WARNING;
+
 /** D-pad friendly settings: focusable tiles, values on the right, edits in dialogs. */
 public final class SettingsActivity extends Activity {
     private static final int REQUEST_HOME_ROLE = 1001;
-    private static final int BACKGROUND = 0xFF0E1116;
-    private static final int TILE = 0xFF1A1E26;
-    private static final int TILE_FOCUSED = 0xFF233A4D;
-    private static final int ACCENT = 0xFF40C4FF;
-    private static final int TEXT = 0xFFF2F4F7;
-    private static final int MUTED = 0xFF9AA4B2;
-    private static final int GOOD = 0xFF66BB6A;
-    private static final int WARNING = 0xFFFFB74D;
 
     private static final class Tile {
         final LinearLayout view;
@@ -42,7 +41,7 @@ public final class SettingsActivity extends Activity {
         Tile(LinearLayout view, TextView value) { this.view = view; this.value = value; }
     }
 
-    private float density;
+    private TvUi ui;
     private String url;
     private boolean gecko;
     private boolean startOnBoot;
@@ -51,7 +50,7 @@ public final class SettingsActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        density = getResources().getDisplayMetrics().density;
+        ui = new TvUi(this);
         url = Preferences.url(this);
         gecko = Preferences.GECKO.equals(Preferences.get(this).getString(Preferences.ENGINE, Preferences.GECKO));
         startOnBoot = Preferences.get(this).getBoolean(Preferences.START_ON_BOOT, true);
@@ -59,26 +58,26 @@ public final class SettingsActivity extends Activity {
         // TVs may overscan, so keep content well inside the screen edges.
         LinearLayout root = new LinearLayout(this);
         root.setBackgroundColor(BACKGROUND);
-        root.setPadding(dp(56), dp(36), dp(56), dp(36));
+        root.setPadding(ui.dp(56), ui.dp(36), ui.dp(56), ui.dp(36));
 
         LinearLayout side = new LinearLayout(this);
         side.setOrientation(LinearLayout.VERTICAL);
         side.setGravity(Gravity.CENTER_VERTICAL);
-        side.setPadding(0, 0, dp(40), 0);
-        side.addView(text("TV Kiosek", 38, TEXT, true));
-        side.addView(text("Nastavení", 20, ACCENT, false));
-        TextView help = text("MENU v kiosku otevře nastavení.\nPodržení MENU otevře aplikace TV.\nZpět zavře nastavení bez uložení.", 16, MUTED, false);
+        side.setPadding(0, 0, ui.dp(40), 0);
+        side.addView(ui.text("TV Kiosek", 38, TEXT, true));
+        side.addView(ui.text("Nastavení", 20, ACCENT, false));
+        TextView help = ui.text("V kiosku: MENU otevře nastavení,\npodržení ZPĚT nebo MENU otevře nabídku,\nHOME se vrátí do kiosku.\n\nZpět zavře nastavení bez uložení.", 16, MUTED, false);
         help.setLineSpacing(0, 1.3f);
-        side.addView(help, margins(0, dp(28), 0, 0));
-        autostartStatus = text("", 16, WARNING, false);
+        side.addView(help, margins(0, ui.dp(28), 0, 0));
+        autostartStatus = ui.text("", 16, WARNING, false);
         autostartStatus.setLineSpacing(0, 1.3f);
-        side.addView(autostartStatus, margins(0, dp(24), 0, 0));
+        side.addView(autostartStatus, margins(0, ui.dp(24), 0, 0));
         root.addView(side, new LinearLayout.LayoutParams(0, -1, 2));
 
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         // Room for the focus scale-up, which would otherwise be clipped.
-        list.setPadding(dp(12), dp(12), dp(12), dp(12));
+        list.setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12));
 
         list.addView(section("Kiosk"));
         urlTile = tile(list, "Webová adresa", "Stránka, která se v kiosku otevře", v -> editUrl());
@@ -106,16 +105,16 @@ public final class SettingsActivity extends Activity {
         webTile = tile(list, "Webová správa", "Nastavení a aktualizace z počítače ve stejné síti", v -> refresh());
         installTile = tile(list, "Instalace aktualizací", "Povolí instalaci APK nahraného přes webovou správu",
                 v -> openUnknownSources());
-        webTile.value.setMaxWidth(dp(480));
+        webTile.value.setMaxWidth(ui.dp(480));
         tile(list, "Aplikace TV", "Seznam nainstalovaných aplikací",
                 v -> startActivity(new Intent(this, AppDrawerActivity.class))).value.setText("›");
 
-        TextView save = text("Uložit a otevřít kiosk", 20, BACKGROUND, true);
+        TextView save = ui.text("Uložit a otevřít kiosk", 20, BACKGROUND, true);
         save.setGravity(Gravity.CENTER);
-        save.setPadding(dp(24), dp(18), dp(24), dp(18));
-        save.setBackground(tileBackground(0xFF2B9BD1, ACCENT));
-        makeFocusable(save, v -> save());
-        list.addView(save, margins(0, dp(20), 0, 0));
+        save.setPadding(ui.dp(24), ui.dp(18), ui.dp(24), ui.dp(18));
+        save.setBackground(ui.tileBackground(0xFF2B9BD1, ACCENT));
+        ui.makeFocusable(save, v -> save());
+        list.addView(save, margins(0, ui.dp(20), 0, 0));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setClipToPadding(false);
@@ -184,7 +183,7 @@ public final class SettingsActivity extends Activity {
         input.setText(url);
         input.setSelection(input.length());
         LinearLayout box = new LinearLayout(this);
-        box.setPadding(dp(24), dp(8), dp(24), 0);
+        box.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
         box.addView(input, new LinearLayout.LayoutParams(-1, -2));
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -261,76 +260,42 @@ public final class SettingsActivity extends Activity {
     private Tile tile(LinearLayout parent, String title, String description, View.OnClickListener action) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(24), dp(16), dp(24), dp(16));
-        row.setBackground(tileBackground(TILE, TILE_FOCUSED));
-        makeFocusable(row, action);
+        row.setPadding(ui.dp(24), ui.dp(16), ui.dp(24), ui.dp(16));
+        row.setBackground(ui.tileBackground(TILE, TILE_FOCUSED));
+        ui.makeFocusable(row, action);
 
         LinearLayout labels = new LinearLayout(this);
         labels.setOrientation(LinearLayout.VERTICAL);
-        labels.addView(text(title, 20, TEXT, false));
-        labels.addView(text(description, 14, MUTED, false));
+        labels.addView(ui.text(title, 20, TEXT, false));
+        labels.addView(ui.text(description, 14, MUTED, false));
         row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
 
-        TextView value = text("", 18, TEXT, false);
+        TextView value = ui.text("", 18, TEXT, false);
         value.setSingleLine(true);
         value.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-        value.setMaxWidth(dp(300));
+        value.setMaxWidth(ui.dp(300));
         LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2);
-        valueParams.leftMargin = dp(16);
+        valueParams.leftMargin = ui.dp(16);
         row.addView(value, valueParams);
 
-        parent.addView(row, margins(0, 0, 0, dp(10)));
+        parent.addView(row, margins(0, 0, 0, ui.dp(10)));
         return new Tile(row, value);
-    }
-
-    private void makeFocusable(View view, View.OnClickListener action) {
-        view.setFocusable(true);
-        view.setClickable(true);
-        view.setOnClickListener(action);
-        view.setOnFocusChangeListener((v, focused) ->
-                v.animate().scaleX(focused ? 1.03f : 1f).scaleY(focused ? 1.03f : 1f).setDuration(120).start());
-    }
-
-    private Drawable tileBackground(int normal, int focused) {
-        StateListDrawable states = new StateListDrawable();
-        GradientDrawable on = rounded(focused);
-        on.setStroke(dp(3), ACCENT);
-        states.addState(new int[] { android.R.attr.state_pressed }, on);
-        states.addState(new int[] { android.R.attr.state_focused }, on);
-        states.addState(new int[0], rounded(normal));
-        return states;
-    }
-
-    private GradientDrawable rounded(int color) {
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(color);
-        shape.setCornerRadius(dp(14));
-        return shape;
     }
 
     private void chip(TextView view, String label, int color) {
         view.setText(label);
         view.setTextColor(color);
         view.setTypeface(Typeface.DEFAULT_BOLD);
-        view.setPadding(dp(14), dp(4), dp(14), dp(4));
-        GradientDrawable shape = rounded((color & 0x00FFFFFF) | 0x33000000);
-        shape.setCornerRadius(dp(20));
+        view.setPadding(ui.dp(14), ui.dp(4), ui.dp(14), ui.dp(4));
+        GradientDrawable shape = ui.rounded((color & 0x00FFFFFF) | 0x33000000);
+        shape.setCornerRadius(ui.dp(20));
         view.setBackground(shape);
     }
 
     private TextView section(String label) {
-        TextView view = text(label.toUpperCase(), 13, ACCENT, true);
+        TextView view = ui.text(label.toUpperCase(), 13, ACCENT, true);
         view.setLetterSpacing(0.12f);
-        view.setPadding(dp(8), dp(18), 0, dp(8));
-        return view;
-    }
-
-    private TextView text(String value, int sp, int color, boolean bold) {
-        TextView view = new TextView(this);
-        view.setText(value);
-        view.setTextSize(sp);
-        view.setTextColor(color);
-        if (bold) view.setTypeface(Typeface.DEFAULT_BOLD);
+        view.setPadding(ui.dp(8), ui.dp(18), 0, ui.dp(8));
         return view;
     }
 
@@ -338,9 +303,5 @@ public final class SettingsActivity extends Activity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
         params.setMargins(left, top, right, bottom);
         return params;
-    }
-
-    private int dp(int value) {
-        return (int) (value * density);
     }
 }
