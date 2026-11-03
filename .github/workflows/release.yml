@@ -30,7 +30,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
         with:
-          gradle-version: '8.11.1'
+          gradle-version: '9.3.1'
 
       - name: Restore release keystore
         env:
@@ -60,7 +60,7 @@ jobs:
       - name: Verify release signature
         run: |
           # Fail rather than publish an APK that cannot update installed TVs.
-          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
           for apk in dist/*.apk; do "$apksigner" verify --print-certs "$apk" | grep 'SHA-256'; done
 
       - name: Publish release

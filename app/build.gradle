@@ -2,8 +2,7 @@ plugins { id 'com.android.application' }
 
 android {
     namespace 'cz.kiosek.tv'
-    compileSdk 36
-    buildToolsVersion '36.0.0'
+    compileSdk 37
 
     defaultConfig {
         applicationId 'cz.kiosek.tv'
