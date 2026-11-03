@@ -198,6 +198,7 @@ public final class WebAdmin {
         result.put("homeApp", Autostart.isHomeApp(app));
         result.put("lastBoot", Preferences.get(app).getString(Preferences.LAST_BOOT, "zatím nezaznamenán"));
         result.put("lastStart", Preferences.get(app).getString(Preferences.LAST_START, "zatím nezaznamenáno"));
+        result.put("lastReload", Preferences.get(app).getString(Preferences.LAST_RELOAD, "zatím nebylo potřeba"));
         return result;
     }
 

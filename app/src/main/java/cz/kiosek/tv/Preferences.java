@@ -18,6 +18,7 @@ public final class Preferences {
     public static final String START_ON_BOOT = "start_on_boot";
     public static final String LAST_BOOT = "last_boot";
     public static final String LAST_START = "last_start";
+    public static final String LAST_RELOAD = "last_reload";
     public static final String DEFAULT_URL = "https://example.com";
     public static final String GECKO = "gecko";
     public static final String SYSTEM_WEBVIEW = "webview";

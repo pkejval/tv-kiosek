@@ -74,6 +74,7 @@
         <dt>Start z pozadí</dt><dd id="autostartReady">–</dd>
         <dt>Poslední boot</dt><dd id="lastBoot">–</dd>
         <dt>Poslední spuštění</dt><dd id="lastStart">–</dd>
+        <dt>Poslední automatické obnovení stránky</dt><dd id="lastReload">–</dd>
       </dl>
     </section>
 
@@ -126,6 +127,7 @@
       $('autostartReady').textContent = data.autostartReady ? 'povolen' : 'zablokován';
       $('lastBoot').textContent = data.lastBoot;
       $('lastStart').textContent = data.lastStart;
+      $('lastReload').textContent = data.lastReload;
     }
     $('version').textContent = data.version;
     $('abi').textContent = data.abi;
