@@ -46,5 +46,5 @@ android {
 
 dependencies {
     // Engine is packaged with the APK, unlike the device's potentially obsolete WebView.
-    implementation 'org.mozilla.geckoview:geckoview:153.0.20260810162159'
+    implementation 'org.mozilla.geckoview:geckoview:159.0.20261022150525'
 }
